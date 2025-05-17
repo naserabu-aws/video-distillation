@@ -1,0 +1,1 @@
+API Endpoint: https://hm24dvaawe.execute-api.us-east-1.amazonaws.com/prod/presigned-url

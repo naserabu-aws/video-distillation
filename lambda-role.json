@@ -1,0 +1,21 @@
+{
+    "Role": {
+        "Path": "/",
+        "RoleName": "VideoTranscriptionLambdaRole",
+        "RoleId": "AROAZI2LI27GV7LFOQAQQ",
+        "Arn": "arn:aws:iam::637423638477:role/VideoTranscriptionLambdaRole",
+        "CreateDate": "2025-05-17T06:00:07+00:00",
+        "AssumeRolePolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": {
+                        "Service": "lambda.amazonaws.com"
+                    },
+                    "Action": "sts:AssumeRole"
+                }
+            ]
+        }
+    }
+}
