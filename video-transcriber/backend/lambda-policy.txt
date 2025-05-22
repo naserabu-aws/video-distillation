@@ -1,0 +1,4 @@
+{
+    "Policy": "{\"Version\":\"2012-10-17\",\"Id\":\"default\",\"Statement\":[{\"Sid\":\"s3-invoke\",\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"s3.amazonaws.com\"},\"Action\":\"lambda:InvokeFunction\",\"Resource\":\"arn:aws:lambda:us-east-1:637423638477:function:NovaHighlightsLambda\",\"Condition\":{\"StringEquals\":{\"AWS:SourceAccount\":\"637423638477\"},\"ArnLike\":{\"AWS:SourceArn\":\"arn:aws:s3:::video-transcription-bucket-1747461583\"}}}]}",
+    "RevisionId": "ea4b8e83-dd76-4e0e-bb33-4468868809a2"
+}

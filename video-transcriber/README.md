@@ -1,11 +1,11 @@
 # Video Transcription Application
 
-This application allows users to upload video files to AWS S3 and automatically transcribe them using AWS Transcribe.
+This application allows users to upload video files to AWS S3, automatically transcribe them using AWS Transcribe, and extract key highlights using Amazon Bedrock's Nova Premier model.
 
 ## Architecture
 
 - **Frontend**: React application for uploading videos and generating presigned URLs
-- **Backend**: AWS Lambda, S3, API Gateway, and Transcribe services
+- **Backend**: AWS Lambda, S3, API Gateway, Transcribe, and Bedrock services
 
 ## Features
 
@@ -13,6 +13,7 @@ This application allows users to upload video files to AWS S3 and automatically 
 - Direct upload to S3 using presigned URLs
 - Real-time upload progress tracking
 - Automatic transcription using AWS Transcribe
+- Extract key highlights from videos using Amazon Bedrock's Nova Premier model
 - Secure storage in a private S3 bucket
 
 ## How it Works
@@ -23,6 +24,9 @@ This application allows users to upload video files to AWS S3 and automatically 
 4. S3 upload triggers a Lambda function
 5. Lambda function starts an AWS Transcribe job
 6. Transcription result is saved back to S3 in the transcriptions/ folder
+7. The transcription file upload triggers another Lambda function
+8. This Lambda function extracts key highlights using Amazon Bedrock's Nova Premier model
+9. Highlights are saved back to S3 in the highlights/ folder
 
 ## Running the Frontend
 
@@ -42,6 +46,12 @@ This application allows users to upload video files to AWS S3 and automatically 
    ```
 
 4. Open your browser to http://localhost:3000
+
+Once the frontend is running, you can:
+1. Click on the upload area or drag and drop a video file
+2. Click the "Upload Video" button to start the upload
+3. Monitor the upload progress
+4. Receive confirmation when the upload is complete and transcription has begun
 
 ## Backend Resources
 
@@ -78,6 +88,15 @@ The following AWS resources have been created:
   - **Memory**: 128 MB
   - **Timeout**: 10 seconds
 
+- **Video Highlights Function**:
+  - **Name**: NovaHighlightsLambda
+  - **Trigger**: S3 ObjectCreated events in transcriptions/ prefix
+  - **Runtime**: Python 3.9
+  - **Handler**: nova_highlights_lambda.lambda_handler
+  - **Memory**: 512 MB
+  - **Timeout**: 300 seconds (5 minutes)
+  - **Purpose**: Extract key highlights from videos using Amazon Bedrock's Nova Premier model
+
 ### API Gateway
 - **API Name**: VideoTranscriptionAPI
 - **ID**: hm24dvaawe
@@ -98,25 +117,45 @@ The naming convention is based on the original uploaded file name with a timesta
 
 Example path: `transcriptions/20250517000000-abcd1234-myvideofile.json`
 
+## Video Highlights
+
+Video highlights extracted by the Nova Premier model are stored in the S3 bucket under the `highlights/` prefix.
+The naming convention matches the transcription file with an additional "-highlights" suffix.
+
+Example path: `highlights/20250517000000-abcd1234-myvideofile-highlights.json`
+
+The highlights JSON file contains:
+- Reference to the source video file and transcript
+- Timestamp of when the highlights were generated
+- Model ID used for extraction
+- Extracted highlights from the video
+
 ## Project Structure
 
 ```
 video-transcriber/
 ├── backend/
-│   ├── lambda-trust-policy.json       # IAM trust policy for Lambda functions
-│   ├── lambda-policy.json             # IAM policy with S3 & Transcribe permissions
-│   ├── transcribe_lambda.py           # Lambda triggered by S3 uploads
-│   ├── presigned_url_lambda.py        # Lambda for generating presigned URLs
-│   ├── s3-notification-config.json    # S3 event notification configuration
-│   └── cors-config.json               # CORS configuration for S3 bucket
+│   ├── lambda-trust-policy.json           # IAM trust policy for Lambda functions
+│   ├── lambda-policy.json                 # IAM policy with S3 & Transcribe permissions
+│   ├── nova-highlights-lambda-policy.json # IAM policy with Bedrock permissions
+│   ├── transcribe_lambda.py               # Lambda triggered by S3 uploads
+│   ├── presigned_url_lambda.py            # Lambda for generating presigned URLs
+│   ├── nova_highlights_lambda.py          # Lambda for extracting video highlights
+│   ├── s3-notification-config.json        # S3 event notification for transcription
+│   ├── nova-highlights-s3-notification-config.json # S3 event notification for highlights
+│   ├── deploy-nova-highlights-lambda.sh   # Deployment script for highlights Lambda
+│   └── cors-config.json                   # CORS configuration for S3 bucket
 ├── frontend/
-│   ├── public/                        # Static assets
-│   └── src/
-│       ├── App.js                     # Main React component
-│       ├── App.css                    # Styles for the application
-│       ├── config.js                  # Configuration including API endpoints
-│       └── ...                        # Other React files
-└── README.md                          # This documentation
+│   ├── public/                            # Static assets
+│   │   └── index.html                     # HTML template
+│   ├── src/
+│   │   ├── App.js                         # Main React component
+│   │   ├── App.css                        # Styles for the application
+│   │   ├── index.js                       # React entry point
+│   │   └── config.js                      # Configuration including API endpoints
+│   ├── package.json                       # npm dependencies and scripts
+│   └── README.md                          # Frontend documentation
+└── README.md                              # This documentation
 ```
 
 ## Known Issues and Fixed Problems
@@ -159,12 +198,34 @@ If transcription jobs are failing:
 
 1. Add authentication using Amazon Cognito
 2. Create a transcription viewer component in the frontend
-3. Add support for transcription in multiple languages
-4. Implement transcription job status monitoring
-5. Add automated tests for both frontend and backend components
-6. Fix the unused variable warning in `App.js`
-7. Add video playback with synchronized transcription
-8. Implement CloudWatch alarms for monitoring and alerts
+3. Add a highlights viewer component in the frontend
+4. Add support for transcription in multiple languages
+5. Implement transcription job status monitoring
+6. Add automated tests for both frontend and backend components
+7. Fix the unused variable warning in `App.js`
+8. Add video playback with synchronized transcription
+9. Implement CloudWatch alarms for monitoring and alerts
+10. Support custom prompts for the highlight extraction process
+
+## Environment Variables for NovaHighlightsLambda
+
+The NovaHighlightsLambda function requires the following environment variables:
+
+- `VIDEO_BUCKET`: S3 bucket containing uploaded videos (default: video-transcription-bucket-1747461583)
+- `TRANSCRIPT_BUCKET`: S3 bucket containing transcription files (default: video-transcription-bucket-1747461583)
+- `HIGHLIGHTS_BUCKET`: S3 bucket where extracted highlights will be stored (default: video-transcription-bucket-1747461583)
+- `MODEL_ID`: Bedrock model ID to use (default: amazon.nova-premier-v1:0)
+- `AWS_REGION`: AWS region where resources are deployed (default: us-east-1)
+
+## IAM Permissions for NovaHighlightsLambda
+
+The NovaHighlightsLambda function requires the following IAM permissions:
+
+- S3 permissions: GetObject, ListBucket, PutObject, ListObjects, ListObjectsV2
+- Amazon Bedrock permissions: bedrock:InvokeModel, bedrock-runtime:InvokeModel
+- CloudWatch Logs permissions: CreateLogGroup, CreateLogStream, PutLogEvents
+
+All of these permissions are defined in the `nova-highlights-lambda-policy.json` file.
 
 ## Workspace Setup Notes
 
@@ -176,5 +237,11 @@ This project was set up with the following AWS CLI commands:
 4. Configure S3 event notifications: `aws s3api put-bucket-notification-configuration`
 5. Set up API Gateway: `aws apigateway create-rest-api`, `aws apigateway create-deployment`
 6. Configure CORS for S3: `aws s3api put-bucket-cors`
-
-All backend components were deployed using direct AWS CLI commands, not using frameworks like CloudFormation or CDK. 
+7. Set up NovaHighlightsLambda:
+   ```
+   # Create Lambda function
+   aws lambda create-function --function-name NovaHighlightsLambda ...
+   
+   # Configure S3 event notification for transcription results
+   aws s3api put-bucket-notification-configuration ...
+   ``` 

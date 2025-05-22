@@ -1,0 +1,42 @@
+{
+    "LambdaFunctionConfigurations": [
+        {
+            "Id": "VideoUploadEvent",
+            "LambdaFunctionArn": "arn:aws:lambda:us-east-1:637423638477:function:VideoTranscriptionFunction",
+            "Events": [
+                "s3:ObjectCreated:*"
+            ],
+            "Filter": {
+                "Key": {
+                    "FilterRules": [
+                        {
+                            "Name": "Prefix",
+                            "Value": "input-videos/"
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "Id": "NovaHighlightsNotification",
+            "LambdaFunctionArn": "arn:aws:lambda:us-east-1:637423638477:function:NovaHighlightsLambda",
+            "Events": [
+                "s3:ObjectCreated:*"
+            ],
+            "Filter": {
+                "Key": {
+                    "FilterRules": [
+                        {
+                            "Name": "Prefix",
+                            "Value": "transcriptions/"
+                        },
+                        {
+                            "Name": "Suffix",
+                            "Value": ".json"
+                        }
+                    ]
+                }
+            }
+        }
+    ]
+}
